@@ -52,41 +52,41 @@ This Terraform project provisions a secure, production-ready infrastructure for 
 
 #### 1. **Network Security**
 
-- ✅ All PaaS services use **private endpoints** (SQL, Storage, Key Vault, Backend App)
-- ✅ **Public network access disabled** on all data services
-- ✅ Frontend app is internet-facing, backend is private-only
-- ✅ VNet integration forces all outbound traffic through VNet
-- ✅ Service endpoints enabled on app subnet for defense-in-depth
-- ✅ Network Security Groups (NSGs) on all subnets
-- ✅ Private DNS zones for private endpoint name resolution
+- All PaaS services use **private endpoints** (SQL, Storage, Key Vault, Backend App)
+- **Public network access disabled** on all data services
+- Frontend app is internet-facing, backend is private-only
+- VNet integration forces all outbound traffic through VNet
+- Service endpoints enabled on app subnet for defense-in-depth
+- Network Security Groups (NSGs) on all subnets
+- Private DNS zones for private endpoint name resolution
 
 #### 2. **Identity & Access Management (Least Privilege)**
 
-- ✅ **System-assigned managed identities** for all App Services
-- ✅ **No connection strings or passwords** in app configuration
-- ✅ **Azure RBAC** for all resource access:
+- **System-assigned managed identities** for all App Services
+- **No connection strings or passwords** in app configuration
+- **Azure RBAC** for all resource access:
   - Backend app: Storage Blob Data Contributor (read/write)
   - Frontend app: Storage Blob Data Reader (read-only)
   - Both apps: Key Vault Secrets User (read secrets)
   - SQL: Azure AD authentication with contained database users
-- ✅ Key Vault uses **RBAC authorization** (not access policies)
+- Key Vault uses **RBAC authorization** (not access policies)
 
 #### 3. **Data Protection**
 
-- ✅ **TLS 1.2 minimum** on all services
-- ✅ **HTTPS only** enforced on App Services
-- ✅ **Purge protection** enabled on Key Vault
-- ✅ **Soft delete** enabled on Storage (7 days) and Key Vault
-- ✅ **Blob versioning** enabled for data recovery
-- ✅ SQL **auditing** enabled and sent to Log Analytics
-- ✅ Secrets stored in Key Vault (SQL passwords, connection strings)
+- **TLS 1.2 minimum** on all services
+- **HTTPS only** enforced on App Services
+- **Purge protection** enabled on Key Vault
+- **Soft delete** enabled on Storage (7 days) and Key Vault
+- **Blob versioning** enabled for data recovery
+- SQL **auditing** enabled and sent to Log Analytics
+- Secrets stored in Key Vault (SQL passwords, connection strings)
 
 #### 4. **Monitoring & Compliance**
 
-- ✅ **Log Analytics Workspace** for centralized logging
-- ✅ **Application Insights** for app telemetry
-- ✅ **Diagnostic settings** on SQL, Storage, and Key Vault
-- ✅ All logs retained for 30 days (configurable)
+- **Log Analytics Workspace** for centralized logging
+- **Application Insights** for app telemetry
+- **Diagnostic settings** on SQL, Storage, and Key Vault
+- All logs retained for 30 days (configurable)
 
 ## Compute Platform Choice: Azure App Service (PaaS)
 
@@ -316,13 +316,13 @@ az keyvault purge --name kv-cde-myapp
 
 ### Implemented Security Controls
 
-✅ **Network Isolation**: All data services behind private endpoints
-✅ **Zero Trust**: No implicit trust, all access via managed identities
-✅ **Least Privilege**: RBAC roles grant minimum required permissions
-✅ **Encryption**: TLS 1.2+ for all traffic, encryption at rest by default
-✅ **Secrets Management**: No secrets in code or app config
-✅ **Auditing**: All access logged to Log Analytics
-✅ **Compliance**: Built-in Azure compliance features utilized
+**Network Isolation**: All data services behind private endpoints
+**Zero Trust**: No implicit trust, all access via managed identities
+**Least Privilege**: RBAC roles grant minimum required permissions
+**Encryption**: TLS 1.2+ for all traffic, encryption at rest by default
+**Secrets Management**: No secrets in code or app config
+**Auditing**: All access logged to Log Analytics
+**Compliance**: Built-in Azure compliance features utilized
 
 ### Additional Recommendations for Production
 
@@ -466,4 +466,5 @@ Production environment with P1v2 App Service: ~$200-250/month
 ## Support and Contact
 
 For questions or issues:
+
 - Consult with development team for questions or inquiries
