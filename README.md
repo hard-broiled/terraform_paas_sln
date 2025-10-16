@@ -51,6 +51,7 @@ This Terraform project provisions a secure, production-ready infrastructure for 
 ### Security Features
 
 #### 1. **Network Security**
+
 - ✅ All PaaS services use **private endpoints** (SQL, Storage, Key Vault, Backend App)
 - ✅ **Public network access disabled** on all data services
 - ✅ Frontend app is internet-facing, backend is private-only
@@ -60,6 +61,7 @@ This Terraform project provisions a secure, production-ready infrastructure for 
 - ✅ Private DNS zones for private endpoint name resolution
 
 #### 2. **Identity & Access Management (Least Privilege)**
+
 - ✅ **System-assigned managed identities** for all App Services
 - ✅ **No connection strings or passwords** in app configuration
 - ✅ **Azure RBAC** for all resource access:
@@ -70,6 +72,7 @@ This Terraform project provisions a secure, production-ready infrastructure for 
 - ✅ Key Vault uses **RBAC authorization** (not access policies)
 
 #### 3. **Data Protection**
+
 - ✅ **TLS 1.2 minimum** on all services
 - ✅ **HTTPS only** enforced on App Services
 - ✅ **Purge protection** enabled on Key Vault
@@ -79,6 +82,7 @@ This Terraform project provisions a secure, production-ready infrastructure for 
 - ✅ Secrets stored in Key Vault (SQL passwords, connection strings)
 
 #### 4. **Monitoring & Compliance**
+
 - ✅ **Log Analytics Workspace** for centralized logging
 - ✅ **Application Insights** for app telemetry
 - ✅ **Diagnostic settings** on SQL, Storage, and Key Vault
@@ -108,6 +112,7 @@ The infrastructure supports multiple environments through:
 5. **Isolated Networks**: Each environment has its own VNet (no peering required for this use case)
 
 **Key Differences Between Environments**:
+
 | Aspect | CDE | Production |
 |--------|-----|------------|
 | Resource Group | `rg-myapp-cde` | `rg-myapp-prod` |
@@ -233,7 +238,7 @@ nslookup $(terraform output -raw sql_server_fqdn)
 
 ## Project Structure
 
-```
+``` text
 .
 ├── terraform/
 │   ├── envs/
