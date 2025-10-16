@@ -1,0 +1,107 @@
+name: Terraform Deploy (cde/prod)
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        type: choice
+        description: "Target env"
+        required: true
+        options:
+          - cde
+          - prod
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      TF_WORKING_DIR: ./terraform/envs/${{ github.event.inputs.env }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set Azure Subscription ID
+        id: set_sub_id
+        run: |
+          if [[ "${{ github.event.inputs.env }}" == "cde" ]]; then
+            echo "AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID_CDE }}" >> $GITHUB_ENV
+          elif [[ "${{ github.event.inputs.env }}" == "prod" ]]; then
+            echo "AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}" >> $GITHUB_ENV
+          fi
+
+      - name: Login to Azure using OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }} # SPN configured for repo OR use federated identity setup
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Get outputs
+        id: outputs
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform output -json > tfoutputs.json
+          cat tfoutputs.json
+      - name: Install mssql tools
+        if: success()
+        run: |
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y curl apt-transport-https gnupg2 unixodbc-dev
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+          curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
+          echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> $GITHUB_ENV
+      - name: Create AAD-contained DB user for backend MI
+        if: success()
+        env:
+          SQL_FQDN: ${{ fromJSON(steps.outputs.outputs.outputs).sql_server_fqdn.value }}
+          DB_NAME: ${{ fromJSON(steps.outputs.outputs.outputs).sql_database_id.value != '' && fromJSON(steps.outputs.outputs.outputs).sql_database_id.value || 'appdb' }} # fallback
+          MI_NAME: backend-${{ github.event.inputs.env }}
+          MI_PRINCIPAL_ID: ${{ fromJSON(steps.outputs.outputs.outputs).app_principal_ids.value.backend }}
+        run: |
+          echo "SQL_FQDN=$SQL_FQDN"
+          # Acquire AAD access token for database
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net/ --query accessToken -o tsv)
+          # Build SQL script on the fly
+          cat > create_mi_user_temp.sql <<EOF
+          CREATE USER [$MI_NAME] FROM EXTERNAL PROVIDER;
+          ALTER ROLE db_datareader ADD MEMBER [$MI_NAME];
+          ALTER ROLE db_datawriter ADD MEMBER [$MI_NAME];
+          EOF
+          # run sqlcmd with AAD access token (-G for AAD auth)
+          sqlcmd -S $SQL_FQDN -d $DB_NAME -G -U $(az ad signed-in-user show --query userPrincipalName -o tsv) -i create_mi_user_temp.sql
+
+      - name: Deploy to App Service (frontend & backend) via zip deploy
+        if: success()
+        env:
+          FRONTEND_APP: ${{ fromJSON(steps.outputs.outputs.outputs).app_names.value.frontend }}
+          BACKEND_APP: ${{ fromJSON(steps.outputs.outputs.outputs).app_names.value.backend }}
+        run: |
+          # Example: deploy a prepared zip package stored as artifact or in repo
+          # Replace path with your build artifact path
+          echo "Deploying frontend to $FRONTEND_APP and backend to $BACKEND_APP"
+          # Login with az cli (already logged in)
+          az webapp deployment source config-zip --resource-group ${TF_WORKING_DIR##*/} --name $FRONTEND_APP --src ./artifacts/frontend.zip
+          az webapp deployment source config-zip --resource-group ${TF_WORKING_DIR##*/} --name $BACKEND_APP --src ./artifacts/backend.zip
